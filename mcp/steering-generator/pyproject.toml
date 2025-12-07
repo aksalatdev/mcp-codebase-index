@@ -1,6 +1,6 @@
 [project]
 name = "steering-generator-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP Server to auto-generate steering/context docs from codebases - like Kiro IDE's built-in feature, but for all AI IDEs"
 readme = "README.md"
 license = {text = "MIT"}
