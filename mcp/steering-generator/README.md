@@ -8,13 +8,10 @@ MCP Server to auto-generate steering/context docs from codebases — like Kiro I
 
 ---
 
-## 🚀 One-Click Install
+## 🚀 Quick Install
 
-### Kiro IDE
+Copy this JSON config to your IDE's MCP settings:
 
-[![Install in Kiro](https://img.shields.io/badge/Install%20in-Kiro-blue?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyTDIgN2wxMCA1IDEwLTV6Ii8+PC9zdmc+)](https://kiro.dev)
-
-Add to `.kiro/settings/mcp.json`:
 ```json
 {
   "mcpServers": {
@@ -26,95 +23,28 @@ Add to `.kiro/settings/mcp.json`:
 }
 ```
 
-### Cursor
+### Config File Locations
 
-[![Install in Cursor](https://img.shields.io/badge/Install%20in-Cursor-black?style=for-the-badge&logo=cursor)](https://cursor.sh)
+| IDE | Config File |
+|-----|-------------|
+| **Kiro** | `.kiro/settings/mcp.json` |
+| **Cursor** | `.cursor/mcp.json` |
+| **VS Code** | `.vscode/mcp.json` |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` |
+| **Claude Desktop** | `claude_desktop_config.json` |
+| **Cline** | Cline MCP settings in VS Code |
 
-Add to `.cursor/mcp.json`:
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "uvx",
-      "args": ["steering-generator-mcp"]
-    }
-  }
-}
-```
-
-### VS Code + Copilot
-
-[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-007ACC?style=for-the-badge&logo=visualstudiocode)](https://code.visualstudio.com)
-
-Add to `.vscode/mcp.json`:
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "uvx",
-      "args": ["steering-generator-mcp"]
-    }
-  }
-}
-```
-
-### Windsurf
-
-[![Install in Windsurf](https://img.shields.io/badge/Install%20in-Windsurf-00C7B7?style=for-the-badge)](https://codeium.com/windsurf)
-
-Add to `~/.codeium/windsurf/mcp_config.json`:
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "uvx",
-      "args": ["steering-generator-mcp"]
-    }
-  }
-}
-```
-
-### Claude Desktop
-
-[![Install in Claude](https://img.shields.io/badge/Install%20in-Claude-orange?style=for-the-badge)](https://claude.ai)
-
-Add to `claude_desktop_config.json`:
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "uvx",
-      "args": ["steering-generator-mcp"]
-    }
-  }
-}
-```
-
-### Cline (VS Code Extension)
-
-Add to Cline MCP settings:
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "uvx",
-      "args": ["steering-generator-mcp"]
-    }
-  }
-}
-```
+> **Note:** Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) installed for `uvx` command.
 
 ---
 
 ## 📦 Alternative: pip install
 
-If you don't have `uvx`, install with pip first:
-
 ```bash
 pip install steering-generator-mcp
 ```
 
-Then use this config instead:
+Then use:
 ```json
 {
   "mcpServers": {
