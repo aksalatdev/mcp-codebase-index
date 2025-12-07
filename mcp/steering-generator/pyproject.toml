@@ -1,0 +1,16 @@
+[project]
+name = "steering-generator-mcp"
+version = "0.1.0"
+description = "MCP Server untuk auto-generate steering docs dari codebase (Next.js, Laravel, React, Vue)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+]
+
+[project.scripts]
+steering-generator = "steering_generator:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
