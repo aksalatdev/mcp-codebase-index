@@ -108,19 +108,24 @@ def generate_tech_md(deep_analysis: dict[str, Any]) -> str:
     # Database & Backend
     if categorized.get("Database"):
         lines.append("## Database & Backend\n")
+        added_db = set()  # Track what we've already added
         for dep in categorized["Database"]:
             purpose = dep.get("purpose", "")
             name = dep.get("name", "")
-            if "supabase" in name.lower():
+            if "supabase" in name.lower() and "supabase" not in added_db:
                 lines.append("- **Database**: Supabase (PostgreSQL)")
                 lines.append("- **Auth**: Supabase Auth")
                 lines.append("- **Storage**: Supabase Storage")
-            elif "prisma" in name.lower():
+                added_db.add("supabase")
+            elif "prisma" in name.lower() and "prisma" not in added_db:
                 lines.append("- **ORM**: Prisma")
-            elif "drizzle" in name.lower():
+                added_db.add("prisma")
+            elif "drizzle" in name.lower() and "drizzle" not in added_db:
                 lines.append("- **ORM**: Drizzle ORM")
-            elif purpose:
+                added_db.add("drizzle")
+            elif purpose and name not in added_db:
                 lines.append(f"- {purpose}")
+                added_db.add(name)
         lines.append("")
     
     # UI & Styling
@@ -291,47 +296,80 @@ def _get_env_var_description(var: str) -> str:
 
 
 def generate_structure_md(deep_analysis: dict[str, Any]) -> str:
-    """Generate detailed structure.md with architecture patterns."""
+    """Generate structure.md - Project structure documentation.
+    
+    Outlines file organization, naming conventions, import patterns, and 
+    architectural decisions. Ensures generated code fits seamlessly into 
+    existing codebase.
+    """
     framework = deep_analysis.get("framework", "unknown")
     patterns = deep_analysis.get("architecturePatterns", {})
     components = deep_analysis.get("components", [])
     
     lines = ["# Project Structure\n"]
+    lines.append("This document defines the project organization and architectural patterns.")
+    lines.append("Follow these conventions when creating new files and components.\n")
     
     # Framework-specific structure
+    lines.append("## Directory Structure\n")
+    
     structures = {
         "nextjs": """```
 ├── app/                    # Next.js App Router
-│   ├── api/               # API routes (Route Handlers)
-│   ├── layout.tsx         # Root layout with providers
-│   ├── page.tsx           # Main entry point
-│   └── globals.css        # Global styles & Tailwind
+│   ├── (routes)/          # Route groups
+│   ├── api/               # API Route Handlers
+│   ├── layout.tsx         # Root layout
+│   ├── page.tsx           # Home page
+│   └── globals.css        # Global styles
 │
 ├── components/            # React components
-│   ├── ui/               # shadcn/ui primitives
-│   └── *.tsx             # Feature components
+│   ├── ui/               # Reusable UI primitives
+│   └── [feature]/        # Feature-specific components
 │
 ├── hooks/                 # Custom React hooks
+│   └── use-*.ts          # Hook files (use- prefix)
 │
-├── lib/                   # Utilities and core logic
-│   ├── types.ts          # TypeScript interfaces
-│   └── utils.ts          # Utility functions
+├── lib/                   # Core utilities
+│   ├── types.ts          # TypeScript type definitions
+│   ├── utils.ts          # Utility functions
+│   └── [service].ts      # Service modules
 │
+├── public/               # Static assets
+│
+└── config files          # next.config.ts, tailwind.config.ts, etc.
+```""",
+        "nextjs-pages": """```
+├── pages/                 # Next.js Pages Router
+│   ├── api/              # API routes
+│   ├── _app.tsx          # App wrapper
+│   ├── _document.tsx     # Document wrapper
+│   └── [route].tsx       # Page components
+│
+├── components/            # React components
+│   ├── ui/               # Reusable UI primitives
+│   └── [feature]/        # Feature-specific components
+│
+├── hooks/                 # Custom React hooks
+├── lib/                   # Core utilities
+├── styles/               # CSS/SCSS files
 └── public/               # Static assets
 ```""",
         "laravel": """```
 ├── app/
 │   ├── Http/
 │   │   ├── Controllers/   # Request handlers
-│   │   └── Middleware/    # HTTP middleware
-│   └── Models/            # Eloquent models
+│   │   ├── Middleware/    # HTTP middleware
+│   │   └── Requests/      # Form requests
+│   ├── Models/            # Eloquent models
+│   └── Services/          # Business logic
 │
 ├── config/                # Configuration files
-│
 ├── database/
-│   └── migrations/        # Database migrations
+│   ├── migrations/        # Database migrations
+│   └── seeders/          # Database seeders
 │
-├── resources/views/       # Blade templates
+├── resources/
+│   └── views/            # Blade templates
 │
 ├── routes/
 │   ├── web.php           # Web routes
@@ -342,11 +380,15 @@ def generate_structure_md(deep_analysis: dict[str, Any]) -> str:
         "react": """```
 ├── src/
 │   ├── components/        # React components
+│   │   ├── ui/           # Reusable UI components
+│   │   └── [feature]/    # Feature components
 │   ├── hooks/            # Custom hooks
 │   ├── store/            # State management
-│   ├── api/              # API services
+│   ├── services/         # API services
 │   ├── types/            # TypeScript types
-│   └── App.tsx           # Root component
+│   ├── utils/            # Utility functions
+│   ├── App.tsx           # Root component
+│   └── main.tsx          # Entry point
 │
 ├── public/               # Static assets
 └── vite.config.ts        # Vite configuration
@@ -354,135 +396,281 @@ def generate_structure_md(deep_analysis: dict[str, Any]) -> str:
         "vue": """```
 ├── src/
 │   ├── components/        # Vue components
+│   │   ├── ui/           # Reusable UI components
+│   │   └── [feature]/    # Feature components
 │   ├── composables/      # Composition API hooks
 │   ├── stores/           # Pinia stores
 │   ├── router/           # Vue Router config
 │   ├── types/            # TypeScript types
-│   └── App.vue           # Root component
+│   ├── App.vue           # Root component
+│   └── main.ts           # Entry point
 │
 ├── public/               # Static assets
 └── vite.config.ts        # Vite configuration
 ```""",
         "nuxt": """```
-├── pages/                 # File-based routing
-├── components/            # Auto-imported components
-├── composables/          # Auto-imported composables
+├── pages/                 # File-based routing (auto-imported)
+├── components/            # Vue components (auto-imported)
+│   ├── ui/               # Reusable UI components
+│   └── [feature]/        # Feature components
+├── composables/          # Composition API hooks (auto-imported)
 ├── server/
-│   └── api/              # Server API routes
+│   ├── api/              # Server API routes
+│   └── middleware/       # Server middleware
+├── stores/               # Pinia stores
 ├── public/               # Static assets
 └── nuxt.config.ts        # Nuxt configuration
 ```""",
     }
     
-    lines.append(structures.get(framework, "```\n# Project structure\n```"))
+    lines.append(structures.get(framework, "```\n# Project structure varies by framework\n```"))
+    lines.append("")
+    
+    # Naming Conventions
+    lines.append("## Naming Conventions\n")
+    
+    if framework in ["nextjs", "nextjs-pages", "react"]:
+        lines.append("| Type | Convention | Example |")
+        lines.append("|------|------------|---------|")
+        lines.append("| Components | PascalCase | `UserProfile.tsx` |")
+        lines.append("| Hooks | camelCase with `use` prefix | `useAuth.ts` |")
+        lines.append("| Utilities | camelCase | `formatDate.ts` |")
+        lines.append("| Types | PascalCase | `User`, `ApiResponse` |")
+        lines.append("| Constants | SCREAMING_SNAKE_CASE | `MAX_ITEMS` |")
+        lines.append("| Files | kebab-case or PascalCase | `user-profile.tsx` |")
+    elif framework in ["vue", "nuxt"]:
+        lines.append("| Type | Convention | Example |")
+        lines.append("|------|------------|---------|")
+        lines.append("| Components | PascalCase | `UserProfile.vue` |")
+        lines.append("| Composables | camelCase with `use` prefix | `useAuth.ts` |")
+        lines.append("| Stores | camelCase | `userStore.ts` |")
+        lines.append("| Types | PascalCase | `User`, `ApiResponse` |")
+    elif framework == "laravel":
+        lines.append("| Type | Convention | Example |")
+        lines.append("|------|------------|---------|")
+        lines.append("| Controllers | PascalCase + Controller | `UserController.php` |")
+        lines.append("| Models | PascalCase singular | `User.php` |")
+        lines.append("| Migrations | snake_case with timestamp | `2024_01_01_create_users_table.php` |")
+        lines.append("| Routes | kebab-case | `/user-profile` |")
     lines.append("")
     
     # Architecture Patterns
     if any(patterns.values()):
-        lines.append("\n## Architecture Patterns\n")
+        lines.append("## Architecture Patterns\n")
         
         if patterns.get("stateManagement"):
-            lines.append("### State Management")
-            lines.append(f"- {patterns['stateManagement']}")
-            lines.append("")
+            lines.append(f"**State Management**: {patterns['stateManagement']}\n")
         
-        if patterns.get("componentPattern"):
-            lines.append("### Component Patterns")
-            lines.append(f"- {patterns['componentPattern']}")
-            lines.append("")
+        if patterns.get("dataFetching"):
+            lines.append(f"**Data Fetching**: {patterns['dataFetching']}\n")
+        
+        if patterns.get("authentication"):
+            lines.append(f"**Authentication**: {patterns['authentication']}\n")
         
         if patterns.get("apiPattern"):
-            lines.append("### API Pattern")
-            lines.append(f"- {patterns['apiPattern']}")
-            lines.append("")
+            lines.append(f"**API Pattern**: {patterns['apiPattern']}\n")
+        
+        if patterns.get("componentPattern"):
+            lines.append(f"**Component Pattern**: {patterns['componentPattern']}\n")
         
         if patterns.get("styling"):
-            lines.append("### Styling")
-            lines.append(f"- {patterns['styling']}")
-            lines.append("")
+            lines.append(f"**Styling**: {patterns['styling']}\n")
+    
+    # Import Patterns
+    lines.append("## Import Conventions\n")
+    
+    if framework in ["nextjs", "nextjs-pages", "react"]:
+        lines.append("```typescript")
+        lines.append("// 1. React/Next imports")
+        lines.append("import { useState, useEffect } from 'react'")
+        lines.append("")
+        lines.append("// 2. Third-party libraries")
+        lines.append("import { z } from 'zod'")
+        lines.append("")
+        lines.append("// 3. Internal imports (use path aliases)")
+        lines.append("import { Button } from '@/components/ui/button'")
+        lines.append("import { useAuth } from '@/hooks/use-auth'")
+        lines.append("import { cn } from '@/lib/utils'")
+        lines.append("import type { User } from '@/lib/types'")
+        lines.append("```\n")
+    elif framework in ["vue", "nuxt"]:
+        lines.append("```typescript")
+        lines.append("// 1. Vue imports")
+        lines.append("import { ref, computed } from 'vue'")
+        lines.append("")
+        lines.append("// 2. Third-party libraries")
+        lines.append("import { z } from 'zod'")
+        lines.append("")
+        lines.append("// 3. Internal imports")
+        lines.append("import { useAuth } from '@/composables/useAuth'")
+        lines.append("import type { User } from '@/types'")
+        lines.append("```\n")
+    
+    # File References
+    lines.append("## Key Files\n")
+    lines.append("Reference these files for implementation patterns:\n")
+    
+    if framework in ["nextjs", "nextjs-pages"]:
+        lines.append("- Types: #[[file:lib/types.ts]]")
+        lines.append("- Utilities: #[[file:lib/utils.ts]]")
+        lines.append("- Root Layout: #[[file:app/layout.tsx]]")
+    elif framework == "react":
+        lines.append("- Types: #[[file:src/types/index.ts]]")
+        lines.append("- App Entry: #[[file:src/App.tsx]]")
+    elif framework in ["vue", "nuxt"]:
+        lines.append("- Types: #[[file:types/index.ts]]")
+        lines.append("- App Config: #[[file:nuxt.config.ts]]" if framework == "nuxt" else "- App Entry: #[[file:src/App.vue]]")
+    
+    lines.append("")
     
     return "\n".join(lines)
 
 
 def generate_product_md(deep_analysis: dict[str, Any]) -> str:
-    """Generate product.md from README and entities."""
+    """Generate product.md - Product overview documentation.
+    
+    Defines product's purpose, target users, key features, and business objectives.
+    Helps AI understand the "why" behind technical decisions and suggest solutions 
+    aligned with product goals.
+    """
     readme = deep_analysis.get("readme", {})
     entities = deep_analysis.get("entities", [])
+    status_enums = deep_analysis.get("statusEnums", [])
+    framework = deep_analysis.get("framework", "unknown")
     
     lines = ["# Product Overview\n"]
+    lines.append("This document defines the product context and business domain.")
+    lines.append("Use this information to understand the purpose behind code decisions.\n")
     
-    # From README
+    # Product Name & Description
     if readme.get("title") and "deploy" not in readme["title"].lower():
-        lines.append(f"{readme['title']}\n")
+        lines.append(f"## Product: {readme['title']}\n")
+    else:
+        lines.append("## Product\n")
     
     if readme.get("description"):
         lines.append(readme["description"])
         lines.append("")
+    else:
+        lines.append("*Add product description to README.md for better context.*\n")
     
+    # Target Users (infer from entities/features if possible)
+    lines.append("## Target Users\n")
+    if readme.get("description"):
+        # Try to infer from description
+        desc_lower = readme["description"].lower()
+        if any(word in desc_lower for word in ["admin", "dashboard", "management"]):
+            lines.append("- Administrators / Internal teams")
+        if any(word in desc_lower for word in ["customer", "user", "client"]):
+            lines.append("- End users / Customers")
+        if any(word in desc_lower for word in ["developer", "api", "integration"]):
+            lines.append("- Developers / Technical users")
+        if not any(word in desc_lower for word in ["admin", "customer", "user", "developer"]):
+            lines.append("- *Define target users based on product requirements*")
+    else:
+        lines.append("- *Define target users based on product requirements*")
+    lines.append("")
+    
+    # Key Features
     if readme.get("features"):
-        lines.append("## Features\n")
-        for feature in readme["features"]:
+        lines.append("## Key Features\n")
+        for feature in readme["features"][:10]:
             lines.append(f"- {feature}")
         lines.append("")
-    
-    # Core Entities
-    if entities:
-        lines.append("## Core Entities\n")
-        for entity in entities[:6]:
-            name = entity.get("name", "")
-            desc = entity.get("description", "")
-            if name:
-                if desc:
-                    lines.append(f"- **{name}**: {desc}")
-                else:
-                    lines.append(f"- **{name}**")
+    else:
+        lines.append("## Key Features\n")
+        lines.append("*Add features section to README.md or define here:*\n")
+        lines.append("- Feature 1")
+        lines.append("- Feature 2")
         lines.append("")
     
-    return "\n".join(lines)
-
-
-def generate_business_rules_md(deep_analysis: dict[str, Any]) -> str:
-    """Generate business-rules.md from entities and status enums."""
-    entities = deep_analysis.get("entities", [])
-    status_enums = deep_analysis.get("statusEnums", [])
-    
-    lines = ["# Business Rules\n"]
-    
-    # Status/Workflow from enums
-    if status_enums:
-        lines.append("## Status Values\n")
-        for enum in status_enums:
-            lines.append(f"### {enum['name']}")
-            for value in enum["values"]:
-                lines.append(f"- `{value}`")
-            lines.append("")
-    
-    # Entity details
+    # Core Domain Entities
     if entities:
-        lines.append("## Data Entities\n")
-        for entity in entities[:5]:
+        lines.append("## Core Entities\n")
+        lines.append("The main data models in this application:\n")
+        
+        for entity in entities[:8]:
             name = entity.get("name", "")
             fields = entity.get("fields", [])
             
-            if name and fields:
+            if name:
+                # Skip internal/utility types
+                if name.endswith("Props") or name.endswith("State") or name.startswith("_"):
+                    continue
+                
                 lines.append(f"### {name}\n")
-                lines.append("| Field | Type | Required |")
-                lines.append("|-------|------|----------|")
-                for field in fields[:10]:
-                    fname = field.get("name", "")
-                    ftype = field.get("type", "").split("\n")[0][:30]
-                    required = "No" if field.get("optional") else "Yes"
-                    lines.append(f"| {fname} | `{ftype}` | {required} |")
-                lines.append("")
+                
+                if fields:
+                    # Show key fields
+                    key_fields = [f for f in fields if not f.get("optional", False)][:5]
+                    optional_fields = [f for f in fields if f.get("optional", False)][:3]
+                    
+                    if key_fields:
+                        lines.append("**Required fields:**")
+                        for field in key_fields:
+                            lines.append(f"- `{field['name']}`: {field['type']}")
+                    
+                    if optional_fields:
+                        lines.append("\n**Optional fields:**")
+                        for field in optional_fields:
+                            lines.append(f"- `{field['name']}?`: {field['type']}")
+                    
+                    lines.append("")
+        
+        lines.append("")
+    
+    # Business Rules / Status Values
+    if status_enums:
+        lines.append("## Status Values & Workflows\n")
+        lines.append("Important status values used in the application:\n")
+        
+        for enum in status_enums[:5]:
+            lines.append(f"**{enum['name']}**: {' → '.join(f'`{v}`' for v in enum['values'])}\n")
+        
+        lines.append("")
+    
+    # Business Objectives
+    lines.append("## Business Objectives\n")
+    lines.append("When implementing features, consider these goals:\n")
+    lines.append("- Maintain data integrity and validation")
+    lines.append("- Ensure good user experience and accessibility")
+    lines.append("- Follow security best practices")
+    lines.append("- Keep code maintainable and testable")
+    lines.append("")
     
     return "\n".join(lines)
 
 
-def _wrap_kiro_format(content: str) -> str:
-    """Wrap content with Kiro front-matter."""
-    return f"""---
+def _wrap_kiro_format(
+    content: str, 
+    inclusion: InclusionMode = "always",
+    file_match_pattern: str | None = None
+) -> str:
+    """Wrap content with Kiro front-matter.
+    
+    Inclusion modes:
+    - always: Loaded into every interaction (default)
+    - fileMatch: Conditional based on file pattern
+    - manual: On-demand via #steering-file-name
+    """
+    if inclusion == "fileMatch" and file_match_pattern:
+        return f"""---
+inclusion: fileMatch
+fileMatchPattern: "{file_match_pattern}"
+---
+
+{content}"""
+    elif inclusion == "manual":
+        return f"""---
+inclusion: manual
+---
+
+{content}"""
+    else:
+        return f"""---
 inclusion: always
 ---
+
 {content}"""
 
 
@@ -492,23 +680,40 @@ def _wrap_cursor_format(content: str, description: str) -> str:
 description: {description}
 alwaysApply: true
 ---
+
 {content}"""
+
+
+def _wrap_copilot_format(content: str) -> str:
+    """Format for GitHub Copilot instructions."""
+    return f"""# GitHub Copilot Instructions
+
+{content}
+
+---
+*Generated by Steering Generator MCP*
+"""
 
 
 def generate_steering_docs_deep(
     deep_analysis: dict[str, Any],
     output_format: OutputFormat = "kiro"
 ) -> dict[str, str]:
-    """Generate comprehensive steering docs from deep analysis."""
+    """Generate comprehensive steering docs from deep analysis.
+    
+    For Kiro format, generates 3 foundational files:
+    - product.md - Product overview, target users, features, business objectives
+    - tech.md - Technology stack, frameworks, libraries, constraints
+    - structure.md - File organization, naming conventions, architecture
+    """
     
     framework = deep_analysis.get("framework", "unknown")
     
-    # Generate all docs
+    # Generate 3 foundational docs (like Kiro)
     docs = {
+        "product.md": generate_product_md(deep_analysis),
         "tech.md": generate_tech_md(deep_analysis),
         "structure.md": generate_structure_md(deep_analysis),
-        "product.md": generate_product_md(deep_analysis),
-        "business-rules.md": generate_business_rules_md(deep_analysis),
     }
     
     config = IDE_CONFIGS.get(output_format, IDE_CONFIGS["markdown"])
@@ -517,18 +722,27 @@ def generate_steering_docs_deep(
     if output_format == "kiro":
         result = {}
         for name, content in docs.items():
-            wrapped = _wrap_kiro_format(content)
+            wrapped = _wrap_kiro_format(content, inclusion="always")
             result[f"{config['path']}{name}"] = wrapped
         return result
     
-    # === Single file formats ===
-    combined = "\n\n---\n\n".join(docs.values())
-    
+    # === CURSOR: Single .mdc file ===
     if output_format == "cursor":
-        wrapped = _wrap_cursor_format(combined, f"Steering rules for {FRAMEWORK_NAMES.get(framework, framework)} project")
+        combined = "\n\n---\n\n".join(docs.values())
+        wrapped = _wrap_cursor_format(
+            combined, 
+            f"Project steering for {FRAMEWORK_NAMES.get(framework, framework)}"
+        )
         return {f"{config['path']}{config['filename']}": wrapped}
     
-    # All others: plain markdown
+    # === COPILOT: .github/copilot-instructions.md ===
+    if output_format == "copilot":
+        combined = "\n\n---\n\n".join(docs.values())
+        wrapped = _wrap_copilot_format(combined)
+        return {f"{config['path']}{config['filename']}": wrapped}
+    
+    # === All others: plain markdown ===
+    combined = "\n\n---\n\n".join(docs.values())
     filename = config.get("filename", "STEERING.md")
     path = config.get("path", "")
     return {f"{path}{filename}": combined}

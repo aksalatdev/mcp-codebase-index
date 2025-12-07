@@ -1,10 +1,94 @@
 # Steering Generator MCP Server
 
-MCP Server untuk auto-generate steering/context docs dari codebase. Bikin AI lebih paham project lo!
+[![PyPI version](https://badge.fury.io/py/steering-generator-mcp.svg)](https://pypi.org/project/steering-generator-mcp/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-## Apa Ini?
+MCP Server untuk auto-generate steering/context docs dari codebase — mirip fitur bawaan Kiro IDE, tapi bisa dipakai di **semua AI IDE** (Cursor, GitHub Copilot, Windsurf, Cline, Aider, dll).
+
+## Quick Start
+
+### 1. Add to your IDE's MCP config:
+
+**Kiro** (`.kiro/settings/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "steering-generator": {
+      "command": "uvx",
+      "args": ["steering-generator-mcp"]
+    }
+  }
+}
+```
+
+**Cursor** (`.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "steering-generator": {
+      "command": "uvx",
+      "args": ["steering-generator-mcp"]
+    }
+  }
+}
+```
+
+### 2. Chat with AI:
+```
+"Generate steering docs for this project"
+```
+
+Done! AI will generate `.kiro/steering/` files automatically.
+
+---
+
+## What is This?
 
 MCP ini scan codebase lo, extract info penting (tech stack, types, routes, dll), terus generate "steering docs" yang bisa dibaca AI. Hasilnya: AI jadi lebih akurat karena udah paham context project.
+
+## Foundational Steering Files
+
+Generate 3 file utama (seperti Kiro):
+
+| File | Fungsi |
+|------|--------|
+| `product.md` | Product overview, target users, key features, business objectives |
+| `tech.md` | Technology stack, frameworks, libraries, dev tools, constraints |
+| `structure.md` | File organization, naming conventions, import patterns, architecture |
+
+## Inclusion Modes
+
+Steering files bisa dikonfigurasi kapan di-load:
+
+```yaml
+---
+inclusion: always          # Default - selalu di-load
+---
+```
+
+```yaml
+---
+inclusion: fileMatch
+fileMatchPattern: "app/api/**/*"   # Conditional - hanya saat kerja di file tertentu
+---
+```
+
+```yaml
+---
+inclusion: manual          # On-demand via #steering-file-name
+---
+```
+
+## File References
+
+Reference file lain dalam steering docs:
+
+```markdown
+#[[file:lib/types.ts]]
+#[[file:api/openapi.yaml]]
+```
+
+---
 
 ## Supported Frameworks
 
@@ -18,7 +102,7 @@ MCP ini scan codebase lo, extract info penting (tech stack, types, routes, dll),
 
 | IDE | Output File | Format |
 |-----|-------------|--------|
-| **Kiro** | `.kiro/steering/*.md` | Multiple files |
+| **Kiro** | `.kiro/steering/*.md` | Multiple files dengan front-matter |
 | **Cursor** | `.cursor/rules/project.mdc` | Single file |
 | **GitHub Copilot** | `.github/copilot-instructions.md` | Single file |
 | **Windsurf** | `.windsurfrules` | Single file |
@@ -28,242 +112,240 @@ MCP ini scan codebase lo, extract info penting (tech stack, types, routes, dll),
 
 ---
 
-## Installation
+## Installation Options
 
-### Prerequisites
+### Option 1: uvx (Recommended - No Install)
 
-- Python 3.10+
-- pip atau uv
-
-### Option 1: Install dari Source (Development)
-
-```bash
-# Clone/download folder mcp/steering-generator
-
-# Masuk ke folder
-cd mcp/steering-generator
-
-# Install dalam editable mode
-pip install -e .
-
-# Test run
-steering-generator
+Just add to MCP config, uvx handles everything:
+```json
+{
+  "mcpServers": {
+    "steering-generator": {
+      "command": "uvx",
+      "args": ["steering-generator-mcp"]
+    }
+  }
+}
 ```
 
-### Option 2: Install via pip (kalau udah publish ke PyPI)
+> Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) installed.
+
+### Option 2: pip install
 
 ```bash
 pip install steering-generator-mcp
 ```
 
-### Option 3: Run langsung tanpa install
-
-```bash
-cd mcp/steering-generator
-python -m steering_generator
+Then config:
+```json
+{
+  "mcpServers": {
+    "steering-generator": {
+      "command": "steering-generator"
+    }
+  }
+}
 ```
 
-### Optional: Install Ripgrep (Recommended untuk codebase besar)
+### Option 3: From Source (Development)
 
-Ripgrep bikin scanning 10x lebih cepat.
-
-**Windows:**
 ```bash
-# Via Chocolatey
-choco install ripgrep
+git clone https://github.com/yourusername/steering-generator-mcp
+cd steering-generator-mcp
+pip install -e .
+```
 
-# Via Scoop
-scoop install ripgrep
+### Optional: Install Ripgrep
 
-# Via Winget
+Ripgrep makes scanning 10x faster for large codebases.
+
+```bash
+# Windows
 winget install BurntSushi.ripgrep
-```
 
-**Mac:**
-```bash
+# Mac
 brew install ripgrep
-```
 
-**Linux:**
-```bash
-# Ubuntu/Debian
+# Linux
 sudo apt install ripgrep
-
-# Arch
-sudo pacman -S ripgrep
-```
-
----
-
-## MCP Configuration
-
-### Kiro IDE
-
-Edit `.kiro/settings/mcp.json` atau `~/.kiro/settings/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "python",
-      "args": ["-m", "steering_generator"],
-      "cwd": "C:/path/to/mcp/steering-generator"
-    }
-  }
-}
-```
-
-### Cursor IDE
-
-Edit `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "python",
-      "args": ["-m", "steering_generator"],
-      "cwd": "/path/to/mcp/steering-generator"
-    }
-  }
-}
-```
-
-### Claude Desktop
-
-Edit `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "python",
-      "args": ["-m", "steering_generator"],
-      "cwd": "/path/to/mcp/steering-generator"
-    }
-  }
-}
 ```
 
 ---
 
 ## Tools Available
 
-### `detect_project_framework`
-Detect framework dari project directory.
-
-```
-Input:  { "project_path": "C:/projects/my-app" }
-Output: { "framework": "nextjs", "supported": true }
-```
-
-### `analyze_project`
-Analyze codebase dan return structured data.
-
-```
-Input:  { "project_path": "C:/projects/my-app" }
-Output: {
-  "framework": "nextjs",
-  "techStack": { "dependencies": ["next", "react", ...] },
-  "types": [...],
-  "components": [...],
-  "stats": { "filesScanned": 45, "ripgrepAvailable": true }
-}
-```
-
 ### `generate_steering`
-Generate steering docs untuk IDE tertentu.
+Generate foundational steering docs.
 
 ```
 Input:  { 
-  "project_path": "C:/projects/my-app",
-  "output_format": "cursor"  // kiro, cursor, copilot, windsurf, cline, aider, markdown
+  "project_path": ".",
+  "output_format": "kiro"  // kiro, cursor, copilot, windsurf, cline, aider, markdown
 }
 Output: {
   "framework": "nextjs",
   "files": {
-    ".cursor/rules/project.mdc": "---\ndescription: ...\n---\n# Tech Stack\n..."
+    ".kiro/steering/product.md": "---\ninclusion: always\n---\n# Product Overview\n...",
+    ".kiro/steering/tech.md": "...",
+    ".kiro/steering/structure.md": "..."
   }
 }
 ```
+
+### `deep_analyze_project`
+Deep analysis untuk context lengkap.
+
+```
+Input:  { "project_path": "." }
+Output: {
+  "framework": "nextjs",
+  "categorizedDependencies": { "Database": [...], "UI & Styling": [...] },
+  "architecturePatterns": { "stateManagement": "Zustand", ... },
+  "entities": [...],
+  "statusEnums": [...]
+}
+```
+
+### `create_custom_steering`
+Buat custom steering file dengan inclusion mode.
+
+```
+Input:  { 
+  "filename": "api-standards.md",
+  "content": "# API Standards\n...",
+  "inclusion": "fileMatch",
+  "file_match_pattern": "app/api/**/*"
+}
+Output: {
+  "path": ".kiro/steering/api-standards.md",
+  "content": "---\ninclusion: fileMatch\nfileMatchPattern: \"app/api/**/*\"\n---\n\n# API Standards\n..."
+}
+```
+
+### `get_steering_template`
+Get template untuk common steering types.
+
+```
+Input:  { "template_type": "api" }  // api, testing, security, code-style, deployment, components
+Output: {
+  "filename": "api-standards.md",
+  "inclusion": "fileMatch",
+  "fileMatchPattern": "app/api/**/*",
+  "content": "# API Standards\n..."
+}
+```
+
+### `detect_project_framework`
+Detect framework dari project.
 
 ### `list_supported_frameworks`
 List semua framework yang di-support.
 
 ### `list_supported_ides`
-List semua IDE dan format output yang di-support.
+List semua IDE dan format output.
 
 ---
 
 ## Example Workflow
 
-### Di Chat AI:
+### Generate Foundational Docs
 
 ```
-User: "Generate steering docs untuk project gw"
-
-AI: *calls detect_project_framework(project_path=".")*
-    → Detected: Next.js
+User: "Generate steering docs untuk project ini"
 
 AI: *calls generate_steering(project_path=".", output_format="kiro")*
-    → Generated 3 files
 
-AI: "Done! Gw udah generate steering docs:
+AI: "Done! Generated 3 foundational steering files:
+     - .kiro/steering/product.md
      - .kiro/steering/tech.md
-     - .kiro/steering/structure.md  
-     - .kiro/steering/entities.md"
+     - .kiro/steering/structure.md"
 ```
 
-### Output Files akan berisi:
+### Create Custom Steering
+
+```
+User: "Buat steering untuk API standards, load hanya saat kerja di API files"
+
+AI: *calls get_steering_template(template_type="api")*
+AI: *calls create_custom_steering(
+      filename="api-standards.md",
+      content="...",
+      inclusion="fileMatch",
+      file_match_pattern="app/api/**/*"
+    )*
+AI: *writes file to .kiro/steering/api-standards.md*
+
+AI: "Done! Created api-standards.md with fileMatch inclusion.
+     Will auto-load when you work on files in app/api/"
+```
+
+---
+
+## Output Example
+
+### `.kiro/steering/tech.md`
 
 ```markdown
-# Tech Stack
-
-## Framework
-- Next.js (App Router)
-
-## Key Dependencies
-- `next`
-- `react`
-- `@supabase/ssr`
-- `tailwindcss`
-...
-```
-
+---
+inclusion: always
 ---
 
-## Performance
+# Technology Stack
 
-| Codebase Size | Tanpa Ripgrep | Dengan Ripgrep |
-|---------------|---------------|----------------|
-| Small (<100 files) | ~1s | ~0.5s |
-| Medium (100-1000 files) | ~5s | ~1s |
-| Large (1000+ files) | ~30s+ | ~3s |
+This document defines the technology choices for this project.
+Use these technologies when generating code and suggestions.
 
-**Tips:** Install ripgrep untuk codebase besar!
+## Framework & Runtime
 
----
+- **Framework**: Next.js 15 (App Router)
+- **UI Library**: React 19
+- **Language**: TypeScript 5
+- **Runtime**: Node.js 20+
 
-## Troubleshooting
+## Database & Backend
 
-### "Module not found"
-```bash
-# Pastikan install dulu
-pip install -e .
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: Supabase Auth
+- **Storage**: Supabase Storage
+
+## UI & Styling
+
+- **CSS Framework**: Tailwind CSS (utility-first)
+- **Component Library**: shadcn/ui (built on Radix UI)
+- **Icons**: Lucide React
+
+## Key Libraries
+
+- **Validation**: Zod (schema validation)
+- **Forms**: React Hook Form
+- **Notifications**: Sonner (toast)
+
+## Development Commands
+
+\`\`\`bash
+npm run dev       # Start development server
+npm run build     # Build for production
+npm run lint      # Run linter
+\`\`\`
+
+## Environment Variables
+
+Required environment variables (`.env.local`):
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key (public) |
+
+## Technical Constraints
+
+When generating code, follow these constraints:
+
+- Use Server Components by default, Client Components only when needed
+- Prefer Server Actions for mutations
+- Use `next/image` for images, `next/link` for navigation
+- Follow TypeScript strict mode
 ```
-
-### "Permission denied" (Windows)
-```bash
-# Run as Administrator atau pake virtual env
-python -m venv venv
-venv\Scripts\activate
-pip install -e .
-```
-
-### MCP gak connect
-- Pastikan path di config benar (absolute path)
-- Restart IDE setelah edit config
-- Check Python ada di PATH
 
 ---
 
