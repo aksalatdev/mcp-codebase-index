@@ -10,7 +10,27 @@ MCP Server to auto-generate steering/context docs from codebases — like Kiro I
 
 ## 🚀 Quick Install
 
-Copy this JSON config to your IDE's MCP settings:
+### Option 1: pip install (Recommended)
+
+```bash
+pip install steering-generator-mcp
+```
+
+Then add to your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "steering-generator": {
+      "command": "steering-generator"
+    }
+  }
+}
+```
+
+### Option 2: uvx (No install needed)
+
+If you have [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
 
 ```json
 {
@@ -23,6 +43,21 @@ Copy this JSON config to your IDE's MCP settings:
 }
 ```
 
+### Option 3: Python module
+
+```json
+{
+  "mcpServers": {
+    "steering-generator": {
+      "command": "python",
+      "args": ["-m", "steering_generator"]
+    }
+  }
+}
+```
+
+---
+
 ### Config File Locations
 
 | IDE | Config File |
@@ -33,27 +68,6 @@ Copy this JSON config to your IDE's MCP settings:
 | **Windsurf** | `~/.codeium/windsurf/mcp_config.json` |
 | **Claude Desktop** | `claude_desktop_config.json` |
 | **Cline** | Cline MCP settings in VS Code |
-
-> **Note:** Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) installed for `uvx` command.
-
----
-
-## 📦 Alternative: pip install
-
-```bash
-pip install steering-generator-mcp
-```
-
-Then use:
-```json
-{
-  "mcpServers": {
-    "steering-generator": {
-      "command": "steering-generator"
-    }
-  }
-}
-```
 
 ---
 

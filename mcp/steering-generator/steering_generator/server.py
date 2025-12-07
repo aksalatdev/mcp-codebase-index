@@ -104,44 +104,80 @@ def analyze_project(project_path: str, framework: str | None = None) -> dict:
 @mcp.tool
 def generate_steering(
     project_path: str,
-    output_format: str = "kiro",
+    output_format: str = "all",
     framework: str | None = None,
+    write_files: bool = True,
 ) -> dict:
     """
-    Generate steering documentation from a codebase.
+    Generate steering documentation from a codebase and write to disk.
     
     Args:
         project_path: Absolute or relative path to the project root
-        output_format: Output format - "kiro" (separate files), "cursor" (.cursorrules), 
-                       or "markdown" (single file)
+        output_format: Output format:
+                       - "all" (default) - Generate for ALL IDEs at once
+                       - "kiro" - .kiro/steering/*.md
+                       - "cursor" - .cursor/rules/project.mdc
+                       - "copilot" - .github/copilot-instructions.md
+                       - "windsurf" - .windsurfrules
+                       - "cline" - .clinerules
+                       - "aider" - CONVENTIONS.md
+                       - "markdown" - STEERING.md
         framework: Optional framework override. If not provided, will auto-detect.
+        write_files: If True (default), automatically write files to disk.
     
     Returns:
-        Dictionary with filename -> content mappings for generated docs
+        Dictionary with generated files info and status
     """
+    from pathlib import Path
+    
     if framework is None:
         framework = detect_framework(project_path)
     
     analysis = analyze_codebase(project_path, framework)
     
-    # Validate output format
-    valid_formats = ["kiro", "cursor", "copilot", "windsurf", "cline", "aider", "markdown"]
-    if output_format not in valid_formats:
-        output_format = "kiro"
+    # Determine which formats to generate
+    all_formats = ["kiro", "cursor", "copilot", "windsurf", "cline", "aider"]
     
-    docs = generate_steering_docs(analysis, output_format)
+    if output_format == "all":
+        formats_to_generate = all_formats
+    elif output_format in all_formats + ["markdown"]:
+        formats_to_generate = [output_format]
+    else:
+        formats_to_generate = all_formats  # Default to all
+    
+    # Generate docs for each format
+    all_docs = {}
+    for fmt in formats_to_generate:
+        docs = generate_steering_docs(analysis, fmt)
+        all_docs.update(docs)
+    
+    # Write files to disk
+    written_files = []
+    errors = []
+    
+    if write_files:
+        base_path = Path(project_path).resolve()
+        
+        for file_path, content in all_docs.items():
+            full_path = base_path / file_path
+            
+            try:
+                # Create directory if needed
+                full_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Write file
+                full_path.write_text(content, encoding="utf-8")
+                written_files.append(str(file_path))
+            except Exception as e:
+                errors.append({"file": file_path, "error": str(e)})
     
     return {
         "framework": framework,
-        "outputFormat": output_format,
-        "files": docs,
-        "analysis": {
-            "typesFound": len(analysis.get("types", [])),
-            "modelsFound": len(analysis.get("models", [])),
-            "routesFound": len(analysis.get("routes", [])),
-            "componentsFound": len(analysis.get("components", [])),
-            "envVarsFound": len(analysis.get("envVars", [])),
-        }
+        "outputFormats": formats_to_generate,
+        "filesWritten": written_files,
+        "errors": errors if errors else None,
+        "success": len(errors) == 0,
+        "message": f"Generated steering docs for {len(formats_to_generate)} IDEs, wrote {len(written_files)} files",
     }
 
 @mcp.tool
